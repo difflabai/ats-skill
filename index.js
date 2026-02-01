@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * ATS CLI - Agent Task Service Command Line Interface
  *

@@ -7,7 +7,7 @@
     "ats": "./index.js"
   },
   "scripts": {
-    "start": "bun run index.js"
+    "start": "node index.js"
   },
   "keywords": [
     "ats",
@@ -29,7 +29,7 @@
   },
   "homepage": "https://github.com/difflabai/ats-skill#readme",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=21.0.0"
   },
   "dependencies": {},
   "devDependencies": {}
