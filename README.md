@@ -5,7 +5,7 @@ CLI skill for the Agent Task Service (ATS) - a task orchestration platform that 
 ## Installation
 
 ```bash
-npx skills add difflab/ats-cli
+npx skills add difflab/ats-skill
 ```
 
 This adds the `ats` command to your Claude Code environment.
