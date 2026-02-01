@@ -27,7 +27,7 @@ ats --version  # Requires v1.x+
 If not installed:
 
 ```bash
-npm install -g @difflab/ats-cli
+npm install -g @difflabai/ats-cli
 ```
 
 **Default Server:** `https://ats.difflab.ai`
