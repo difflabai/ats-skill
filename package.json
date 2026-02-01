@@ -4,7 +4,7 @@
   "description": "CLI for Agent Task Service - task orchestration between AI agents and humans",
   "type": "module",
   "bin": {
-    "ats": "./index.js"
+    "ats": "index.js"
   },
   "scripts": {
     "start": "node index.js"
