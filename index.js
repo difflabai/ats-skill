@@ -6,7 +6,7 @@
  * in the Agent Task Service.
  */
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const DEFAULT_BASE_URL = process.env.ATS_URL || 'https://ats.difflab.ai';
 
 // ============================================================================
