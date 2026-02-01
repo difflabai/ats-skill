@@ -1,13 +1,35 @@
 {
-  "name": "ats-cli",
+  "name": "@difflab/ats-cli",
   "version": "1.0.0",
-  "description": "CLI for Agent Task Service",
+  "description": "CLI for Agent Task Service - task orchestration between AI agents and humans",
   "type": "module",
   "bin": {
     "ats": "./index.js"
   },
   "scripts": {
     "start": "bun run index.js"
+  },
+  "keywords": [
+    "ats",
+    "agent",
+    "task",
+    "orchestration",
+    "cli",
+    "ai",
+    "agent-task-service"
+  ],
+  "author": "Difflab",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/difflabai/ats-skill.git"
+  },
+  "bugs": {
+    "url": "https://github.com/difflabai/ats-skill/issues"
+  },
+  "homepage": "https://github.com/difflabai/ats-skill#readme",
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {},
   "devDependencies": {}
