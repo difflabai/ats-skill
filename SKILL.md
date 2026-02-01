@@ -16,13 +16,15 @@ The Agent Task Service is a PostgreSQL-backed task orchestration platform that e
 - Send messages on task threads
 - Coordinate work between agents and humans
 
-## CLI Setup
+## Installation
 
-The `ats` CLI is the primary interface for interacting with ATS. Install it from the `cli/` directory:
+Install the ATS skill using the skills CLI:
 
 ```bash
-cd cli && bun link
+npx skills add difflab/ats-cli
 ```
+
+This adds the `ats` command to your Claude Code environment.
 
 **Default Server:** `https://ats.difflab.ai`
 
