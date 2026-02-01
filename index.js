@@ -6,7 +6,13 @@
  * in the Agent Task Service.
  */
 
-const VERSION = '1.0.1';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { homedir } from 'os';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const { version: VERSION } = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
 const DEFAULT_BASE_URL = process.env.ATS_URL || 'https://ats.difflab.ai';
 
 // ============================================================================
@@ -61,10 +67,6 @@ function parseArgs(args) {
 // ============================================================================
 // Configuration
 // ============================================================================
-
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { homedir } from 'os';
-import { join, dirname } from 'path';
 
 const GLOBAL_CONFIG_PATH = join(homedir(), '.ats', 'config');
 const PROJECT_CONFIG_NAME = '.ats/config';
