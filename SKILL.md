@@ -21,7 +21,7 @@ The Agent Task Service is a PostgreSQL-backed task orchestration platform that e
 Install the ATS skill using the skills CLI:
 
 ```bash
-npx skills add difflab/ats-cli
+npx skills add difflabai/ats-cli
 ```
 
 This adds the `ats` command to your Claude Code environment.
