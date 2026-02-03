@@ -34,8 +34,6 @@ npm install -g @difflabai/ats-cli
 
 **Environment Variables:**
 - `ATS_URL` - Override server URL
-- `ATS_ORG` - Default organization
-- `ATS_PROJECT` - Default project
 - `ATS_ACTOR_TYPE` - Default actor type (human, agent, system)
 - `ATS_ACTOR_ID` - Default actor ID
 - `ATS_ACTOR_NAME` - Default actor display name
@@ -48,8 +46,6 @@ ATS CLI stores defaults in `~/.ats/config`:
 
 ```json
 {
-  "organization": "default",
-  "project": "main",
   "url": "https://ats.difflab.ai",
   "actor": {
     "type": "agent",
@@ -60,48 +56,6 @@ ATS CLI stores defaults in `~/.ats/config`:
 ```
 
 **Priority:** CLI flags > environment variables > config file > defaults
-
----
-
-## Organization Commands
-
-```bash
-# List organizations you belong to
-ats org list
-
-# Get organization details
-ats org get <slug>
-
-# Set default organization
-ats org switch <slug>
-
-# Show current organization
-ats org current
-
-# Create a new organization
-ats org create <slug> --name "Organization Name"
-```
-
----
-
-## Project Commands
-
-```bash
-# List projects in current org (with task counts)
-ats project list
-
-# Get project details
-ats project get <slug>
-
-# Set default project
-ats project switch <slug>
-
-# Show current project
-ats project current
-
-# Create a new project
-ats project create <slug> --name "Project Name" --description "..."
-```
 
 ---
 
@@ -385,8 +339,6 @@ ats health
 | Option | Short | Description |
 |--------|-------|-------------|
 | `--url` | `-u` | Service URL (default: https://ats.difflab.ai) |
-| `--org` | | Override default organization |
-| `--project` | | Override default project |
 | `--format` | `-f` | Output format: table, json |
 | `--actor-type` | | Actor type: human, agent, system |
 | `--actor-id` | | Actor identifier |
@@ -400,14 +352,6 @@ ats health
 
 | Operation | Command |
 |-----------|---------|
-| **Organizations** | |
-| List orgs | `ats org list` |
-| Switch org | `ats org switch <slug>` |
-| Current org | `ats org current` |
-| **Projects** | |
-| List projects | `ats project list` |
-| Switch project | `ats project switch <slug>` |
-| Current project | `ats project current` |
 | **Tasks** | |
 | List pending | `ats list` |
 | List all | `ats list --all` |
