@@ -1,6 +1,6 @@
 {
   "name": "@difflabai/ats-cli",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "CLI for Agent Task Service - task orchestration between AI agents and humans",
   "type": "module",
   "bin": {
