@@ -160,6 +160,17 @@ ats fail 123 --reason "Unable to connect to external service"
 ats reject 123 --reason "This task is outside my capabilities"
 ```
 
+### Reopen a Task
+
+Reopen a task from a terminal state (`completed`, `cancelled`, `failed`, `rejected`) back to `pending`:
+
+```bash
+ats reopen 123
+
+# With reason
+ats reopen 123 --reason "Need to revisit this task"
+```
+
 ### Delete a Task
 
 ```bash
@@ -217,6 +228,7 @@ ats watch --events task.created,task.completed
 - `task.cancelled` - Task cancelled
 - `task.failed` - Task failed with error
 - `task.rejected` - Task rejected by worker
+- `task.reopened` - Task reopened from terminal state
 - `task.message` - New message added
 - `task.lease_expired` - Worker lease expired, task returned to pending
 
@@ -225,18 +237,18 @@ ats watch --events task.created,task.completed
 ## Task Status Flow
 
 ```
-pending ──claim──→ in_progress ──complete──→ completed
-   │                    │
-   │                    ├──cancel───→ cancelled
-   │                    │
-   │                    ├──fail─────→ failed
-   │                    │
-   │                    └─(lease expires)─→ pending
-   │
-   └──reject──→ rejected
+pending ──claim──→ in_progress ──complete──→ completed ──┐
+   ↑                    │                                │
+   │                    ├──cancel───→ cancelled ─────────┤
+   │                    │                                │
+   │                    ├──fail─────→ failed ────────────┼──reopen──→ pending
+   │                    │                                │
+   │                    └─(lease expires)─→ pending      │
+   │                                                     │
+   └──reject──→ rejected ────────────────────────────────┘
 ```
 
-**Terminal states:** `completed`, `cancelled`, `failed`, `rejected`
+**Terminal states:** `completed`, `cancelled`, `failed`, `rejected` (all can be reopened)
 
 ---
 
@@ -363,6 +375,7 @@ ats health
 | Cancel task | `ats cancel ID` |
 | Fail task | `ats fail ID --reason "..."` |
 | Reject task | `ats reject ID --reason "..."` |
+| Reopen task | `ats reopen ID --reason "..."` |
 | Add message | `ats message add ID "text"` |
 | List messages | `ats message list ID` |
 | Watch events | `ats watch` |
