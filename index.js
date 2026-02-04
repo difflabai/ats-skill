@@ -743,37 +743,37 @@ commands.message = {
   }
 };
 
-// --- Repo Commands ---
+// --- Project Commands ---
 /**
  * Parse org/project notation (e.g., "myorg/myproject")
- * @param {string} repoString - Repository string in org/project format
+ * @param {string} projectString - Project string in org/project format
  * @returns {{ org: string, project: string } | null}
  */
-function parseRepoString(repoString) {
-  if (!repoString || !repoString.includes('/')) return null;
-  const [org, project] = repoString.split('/', 2);
+function parseProjectString(projectString) {
+  if (!projectString || !projectString.includes('/')) return null;
+  const [org, project] = projectString.split('/', 2);
   if (!org || !project) return null;
   return { org, project };
 }
 
-const REPO_COLUMNS = [
-  { key: 'repo', label: 'Repository' },
+const PROJECT_COLUMNS = [
+  { key: 'project', label: 'Project' },
   { key: 'name', label: 'Name' },
   { key: 'pending_count', label: 'Pending' },
   { key: 'in_progress_count', label: 'Active' },
   { key: 'total_count', label: 'Total' }
 ];
 
-commands.repo = {
+commands.project = {
   async init(args, config) {
     const { positional, options, flags } = args;
 
     // Parse org/project from positional argument or options
     let org, project;
-    const repoArg = positional[0];
+    const projectArg = positional[0];
 
-    if (repoArg && repoArg.includes('/')) {
-      const parsed = parseRepoString(repoArg);
+    if (projectArg && projectArg.includes('/')) {
+      const parsed = parseProjectString(projectArg);
       if (parsed) {
         org = parsed.org;
         project = parsed.project;
@@ -784,16 +784,16 @@ commands.repo = {
     }
 
     if (!org || !project) {
-      console.error('Error: Repository required in org/project format');
-      console.error('Usage: ats repo init <org/project>');
-      console.error('       ats repo init --org <org> --project <project>');
+      console.error('Error: Project required in org/project format');
+      console.error('Usage: ats project init <org/project>');
+      console.error('       ats project init --org <org> --project <project>');
       process.exit(1);
     }
 
     // Check if project config already exists in current directory
     const existingPath = join(process.cwd(), PROJECT_CONFIG_NAME);
     if (existsSync(existingPath) && !flags.force) {
-      console.error(`Error: Repository config already exists at ${existingPath}`);
+      console.error(`Error: Project config already exists at ${existingPath}`);
       console.error('Use --force to overwrite.');
       process.exit(1);
     }
@@ -803,7 +803,7 @@ commands.repo = {
       try {
         await request(config, 'GET', `/orgs/${org}/projects/${project}`);
       } catch (err) {
-        console.error(`Error: Could not verify repository ${org}/${project}: ${err.message}`);
+        console.error(`Error: Could not verify project ${org}/${project}: ${err.message}`);
         console.error('Use --no-verify to skip verification.');
         process.exit(1);
       }
@@ -820,29 +820,29 @@ commands.repo = {
     }
 
     const savedPath = saveProjectConfig(projectConfig);
-    console.log(`✓ Directory bound to repository: ${org}/${project}`);
+    console.log(`✓ Directory bound to project: ${org}/${project}`);
     console.log(`  Config: ${savedPath}`);
-    console.log('\nAll ats commands in this directory will now use this repository.');
+    console.log('\nAll ats commands in this directory will now use this project.');
   },
 
   async list(args, config) {
-    // Get all orgs, then all projects for each org, flatten into repo list
+    // Get all orgs, then all projects for each org, flatten into project list
     const orgsResult = await request(config, 'GET', '/orgs');
     const orgs = orgsResult.organizations || [];
 
     if (orgs.length === 0) {
-      console.log('No organizations found. Create one with: ats repo create <org/project>');
+      console.log('No organizations found. Create one with: ats project create <org/project>');
       return;
     }
 
-    const repos = [];
+    const allProjects = [];
     for (const org of orgs) {
       const projectsResult = await request(config, 'GET', `/orgs/${org.slug}/projects?counts=true`);
       const projects = projectsResult.projects || [];
 
       for (const proj of projects) {
-        repos.push({
-          repo: `${org.slug}/${proj.slug}`,
+        allProjects.push({
+          project: `${org.slug}/${proj.slug}`,
           name: proj.name || proj.slug,
           pending_count: proj.pending_count || 0,
           in_progress_count: proj.in_progress_count || 0,
@@ -853,36 +853,36 @@ commands.repo = {
       }
     }
 
-    if (repos.length === 0) {
-      console.log('No repositories found. Create one with: ats repo create <org/project>');
+    if (allProjects.length === 0) {
+      console.log('No projects found. Create one with: ats project create <org/project>');
       return;
     }
 
-    // Mark current repo
-    const currentRepo = `${config.organization}/${config.project}`;
-    for (const repo of repos) {
-      if (repo.repo === currentRepo) {
-        repo.repo = `${repo.repo} *`;
+    // Mark current project
+    const currentProject = `${config.organization}/${config.project}`;
+    for (const proj of allProjects) {
+      if (proj.project === currentProject) {
+        proj.project = `${proj.project} *`;
       }
     }
 
-    formatOutput(repos, config.format, REPO_COLUMNS);
-    console.log(`\n${repos.length} repository(s) (* = current)`);
+    formatOutput(allProjects, config.format, PROJECT_COLUMNS);
+    console.log(`\n${allProjects.length} project(s) (* = current)`);
   },
 
   async create(args, config) {
     const { positional, options } = args;
-    const repoArg = positional[0];
+    const projectArg = positional[0];
 
-    if (!repoArg || !repoArg.includes('/')) {
-      console.error('Error: Repository required in org/project format');
-      console.error('Usage: ats repo create <org/project> [--name "Project Name"] [--description "..."]');
+    if (!projectArg || !projectArg.includes('/')) {
+      console.error('Error: Project required in org/project format');
+      console.error('Usage: ats project create <org/project> [--name "Project Name"] [--description "..."]');
       process.exit(1);
     }
 
-    const parsed = parseRepoString(repoArg);
+    const parsed = parseProjectString(projectArg);
     if (!parsed) {
-      console.error('Error: Invalid repository format. Use org/project');
+      console.error('Error: Invalid project format. Use org/project');
       process.exit(1);
     }
 
@@ -906,28 +906,28 @@ commands.repo = {
 
     const result = await request(config, 'POST', `/orgs/${org}/projects`, body);
     const proj = result.project || result;
-    console.log(`✓ Repository created: ${org}/${proj.slug}`);
+    console.log(`✓ Project created: ${org}/${proj.slug}`);
   },
 
   async switch(args, config) {
     const { positional } = args;
-    const repoArg = positional[0];
+    const projectArg = positional[0];
 
-    if (!repoArg || !repoArg.includes('/')) {
-      console.error('Error: Repository required in org/project format');
-      console.error('Usage: ats repo switch <org/project>');
+    if (!projectArg || !projectArg.includes('/')) {
+      console.error('Error: Project required in org/project format');
+      console.error('Usage: ats project switch <org/project>');
       process.exit(1);
     }
 
-    const parsed = parseRepoString(repoArg);
+    const parsed = parseProjectString(projectArg);
     if (!parsed) {
-      console.error('Error: Invalid repository format. Use org/project');
+      console.error('Error: Invalid project format. Use org/project');
       process.exit(1);
     }
 
     const { org, project } = parsed;
 
-    // Verify repo exists
+    // Verify project exists
     await request(config, 'GET', `/orgs/${org}/projects/${project}`);
 
     // Save to global config file
@@ -936,14 +936,14 @@ commands.repo = {
     globalConfig.project = project;
     saveGlobalConfig(globalConfig);
 
-    console.log(`✓ Switched to repository: ${org}/${project}`);
+    console.log(`✓ Switched to project: ${org}/${project}`);
   },
 
   async current(args, config) {
     const { projectPath } = loadConfig();
-    const repo = `${config.organization}/${config.project}`;
+    const currentProject = `${config.organization}/${config.project}`;
 
-    console.log(`Current repository: ${repo}`);
+    console.log(`Current project: ${currentProject}`);
     if (projectPath) {
       console.log(`  Source: ${projectPath}`);
     } else {
@@ -959,20 +959,20 @@ commands.repo = {
         current: `${config.organization}/${config.project}`,
         global: {
           path: GLOBAL_CONFIG_PATH,
-          repo: globalConfig.organization && globalConfig.project
+          project: globalConfig.organization && globalConfig.project
             ? `${globalConfig.organization}/${globalConfig.project}`
             : null,
           url: globalConfig.url || DEFAULT_BASE_URL
         },
         local: projectPath ? {
           path: projectPath,
-          repo: projectConfig.organization && projectConfig.project
+          project: projectConfig.organization && projectConfig.project
             ? `${projectConfig.organization}/${projectConfig.project}`
             : null,
           url: projectConfig.url || null
         } : null,
         effective: {
-          repo: `${config.organization}/${config.project}`,
+          project: `${config.organization}/${config.project}`,
           url: config.baseUrl,
           actor: config.actor
         }
@@ -980,30 +980,30 @@ commands.repo = {
       return;
     }
 
-    console.log('\n┌─ Repository Configuration ─────────────────────────');
+    console.log('\n┌─ Project Configuration ────────────────────────────');
     console.log(`│ Current:       ${config.organization}/${config.project}`);
     console.log('├─ Global Config ────────────────────────────────────');
     console.log(`│ Path:          ${GLOBAL_CONFIG_PATH}`);
-    const globalRepo = globalConfig.organization && globalConfig.project
+    const globalProject = globalConfig.organization && globalConfig.project
       ? `${globalConfig.organization}/${globalConfig.project}`
       : '(not set)';
-    console.log(`│ Repository:    ${globalRepo}`);
+    console.log(`│ Project:       ${globalProject}`);
     console.log(`│ URL:           ${globalConfig.url || '(default)'}`);
 
     console.log('├─ Local Config ─────────────────────────────────────');
     if (projectPath) {
       console.log(`│ Path:          ${projectPath}`);
-      const localRepo = projectConfig.organization && projectConfig.project
+      const localProject = projectConfig.organization && projectConfig.project
         ? `${projectConfig.organization}/${projectConfig.project}`
         : '(not set)';
-      console.log(`│ Repository:    ${localRepo}`);
+      console.log(`│ Project:       ${localProject}`);
       console.log(`│ URL:           ${projectConfig.url || '(inherited)'}`);
     } else {
       console.log('│ (no local config found)');
     }
 
     console.log('├─ Effective Settings ───────────────────────────────');
-    console.log(`│ Repository:    ${config.organization}/${config.project}`);
+    console.log(`│ Project:       ${config.organization}/${config.project}`);
     console.log(`│ URL:           ${config.baseUrl}`);
     console.log(`│ Actor:         ${config.actor.name} (${config.actor.type})`);
     console.log('└────────────────────────────────────────────────────\n');
@@ -1011,20 +1011,20 @@ commands.repo = {
 
   async rename(args, config) {
     const { positional, options } = args;
-    const repoArg = positional[0];
+    const projectArg = positional[0];
     const targetArg = positional[1];
 
-    if (!repoArg || !repoArg.includes('/')) {
-      console.error('Error: Repository required in org/project format');
-      console.error('Usage: ats repo rename <org/project> <new-org/new-project>');
-      console.error('       ats repo rename <org/project> --slug <new-project-slug>');
-      console.error('       ats repo rename <org/project> --name <display-name>');
+    if (!projectArg || !projectArg.includes('/')) {
+      console.error('Error: Project required in org/project format');
+      console.error('Usage: ats project rename <org/project> <new-org/new-project>');
+      console.error('       ats project rename <org/project> --slug <new-project-slug>');
+      console.error('       ats project rename <org/project> --name <display-name>');
       process.exit(1);
     }
 
-    const parsed = parseRepoString(repoArg);
+    const parsed = parseProjectString(projectArg);
     if (!parsed) {
-      console.error('Error: Invalid repository format. Use org/project');
+      console.error('Error: Invalid project format. Use org/project');
       process.exit(1);
     }
 
@@ -1037,7 +1037,7 @@ commands.repo = {
 
     if (targetArg) {
       if (targetArg.includes('/')) {
-        const targetParsed = parseRepoString(targetArg);
+        const targetParsed = parseProjectString(targetArg);
         if (targetParsed) {
           if (targetParsed.org !== org) {
             newOrg = targetParsed.org;
@@ -1054,9 +1054,9 @@ commands.repo = {
 
     if (!newOrg && !newProject && !newName) {
       console.error('Error: Must specify target org/project, --slug, or --name');
-      console.error('Usage: ats repo rename <org/project> <new-org/new-project>');
-      console.error('       ats repo rename <org/project> --slug <new-project-slug>');
-      console.error('       ats repo rename <org/project> --name <display-name>');
+      console.error('Usage: ats project rename <org/project> <new-org/new-project>');
+      console.error('       ats project rename <org/project> --slug <new-project-slug>');
+      console.error('       ats project rename <org/project> --name <display-name>');
       process.exit(1);
     }
 
@@ -1087,9 +1087,9 @@ commands.repo = {
       }
     }
 
-    console.log(`✓ Repository: ${finalOrg}/${finalProject}`);
+    console.log(`✓ Project: ${finalOrg}/${finalProject}`);
 
-    // Update local config if this was the current repo
+    // Update local config if this was the current project
     const { project: projectConfig, projectPath } = loadConfig();
     if (projectPath && projectConfig.organization === org && projectConfig.project === project) {
       if (newOrg || newProject) {
@@ -1100,7 +1100,7 @@ commands.repo = {
       }
     }
 
-    // Update global config if this was the current repo
+    // Update global config if this was the current project
     const globalConfig = loadGlobalConfig();
     if (globalConfig.organization === org && globalConfig.project === project) {
       if (newOrg || newProject) {
@@ -1247,21 +1247,21 @@ TASK COMMANDS:
   reopen <id>                Reopen a task from terminal state
     --reason <text>          Reason for reopening
 
-REPOSITORY COMMANDS:
-  repo init [org/project]    Bind current directory to a repository
-    --force                  Overwrite existing config
-    --no-verify              Skip verification
-  repo list                  List all repositories (flattened org/project view)
-  repo create <org/project>  Create a new repository
-    --name <name>            Project name
-    --description <text>     Project description
-  repo rename <org/project> [new-org/new-project]
-                             Rename org and/or project
-    --slug <slug>            New project slug only
-    --name <name>            New display name
-  repo switch <org/project>  Switch default repository
-  repo current               Show current repository binding
-  repo show                  Show full config with sources
+PROJECT COMMANDS:
+  project init [org/project]    Bind current directory to a project
+    --force                     Overwrite existing config
+    --no-verify                 Skip verification
+  project list                  List all projects (flattened org/project view)
+  project create <org/project>  Create a new project
+    --name <name>               Project name
+    --description <text>        Project description
+  project rename <org/project> [new-org/new-project]
+                                Rename org and/or project
+    --slug <slug>               New project slug only
+    --name <name>               New display name
+  project switch <org/project>  Switch default project
+  project current               Show current project binding
+  project show                  Show full config with sources
 
 OTHER COMMANDS:
   health                     Check service health
@@ -1299,9 +1299,9 @@ CONFIGURATION:
 
   Priority: CLI flags > environment variables > project config > global config > defaults
 
-  Project-level config binds a directory to an ATS repository, similar to
-  how .git binds a directory to a git repository. Use "ats repo init" to
-  bind the current directory to a repository.
+  Project-level config binds a directory to an ATS project, similar to
+  how .git binds a directory to a git repository. Use "ats project init" to
+  bind the current directory to a project.
 
 ENVIRONMENT VARIABLES:
   ATS_URL                    Service URL
@@ -1321,13 +1321,13 @@ EXAMPLES:
   ats message add 42 "On it"                # Add a comment
   ats watch --channel support               # Watch events
 
-  ats repo list                             # List all repositories
-  ats repo switch myorg/myproject           # Switch to a repository
-  ats repo init myorg/myproject             # Bind current dir to a repo
-  ats repo create myorg/newproj             # Create a new repository
-  ats repo rename myorg/old neworg/new      # Rename org and project
-  ats repo current                          # Show current repository
-  ats repo show                             # Show full config
+  ats project list                          # List all projects
+  ats project switch myorg/myproject        # Switch to a project
+  ats project init myorg/myproject          # Bind current dir to a project
+  ats project create myorg/newproj          # Create a new project
+  ats project rename myorg/old neworg/new   # Rename org and project
+  ats project current                       # Show current project
+  ats project show                          # Show full config
 `);
 }
 
