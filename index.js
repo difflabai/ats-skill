@@ -661,6 +661,23 @@ commands.reject = async function(args, config) {
   console.log(`✓ Task ${id} rejected`);
 };
 
+commands.reopen = async function(args, config) {
+  const id = args.positional[0] || args.options.id;
+  if (!id) {
+    console.error('Error: Task ID is required');
+    console.error('Usage: ats reopen <id> [--reason <text>]');
+    process.exit(1);
+  }
+
+  const body = {};
+  if (args.options.reason) {
+    body.reason = args.options.reason;
+  }
+
+  await request(config, 'POST', taskPath(config, `/${id}/reopen`), body);
+  console.log(`✓ Task ${id} reopened`);
+};
+
 // --- Message Commands ---
 commands.message = {
   async add(args, config) {
@@ -1227,6 +1244,8 @@ TASK COMMANDS:
     --reason <text>          Failure reason
   reject <id>                Reject a task
     --reason <text>          Rejection reason
+  reopen <id>                Reopen a task from terminal state
+    --reason <text>          Reason for reopening
 
 REPOSITORY COMMANDS:
   repo init [org/project]    Bind current directory to a repository
