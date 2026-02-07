@@ -65,6 +65,123 @@ function parseArgs(args) {
 }
 
 // ============================================================================
+// Filter Parsers
+// ============================================================================
+
+/**
+ * Parse human-friendly time string into ISO timestamp.
+ * Supports: 30m, 4h, 1d, 2w, 3M, today, yesterday, ISO dates/timestamps.
+ */
+function parseTimeString(input) {
+  if (!input) return null;
+
+  // Special keywords
+  if (input === 'today') {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+  }
+  if (input === 'yesterday') {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+  }
+
+  // ISO timestamp (contains T) - pass through
+  if (input.includes('T')) {
+    const d = new Date(input);
+    if (isNaN(d.getTime())) throw new Error(`Invalid timestamp: "${input}"`);
+    return d.toISOString();
+  }
+
+  // ISO date (YYYY-MM-DD) - convert to start of day
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    const d = new Date(input + 'T00:00:00');
+    if (isNaN(d.getTime())) throw new Error(`Invalid date: "${input}"`);
+    return d.toISOString();
+  }
+
+  // Relative time: 30m, 4h, 1d, 2w, 3M
+  const match = input.match(/^(\d+)([mhdwM])$/);
+  if (!match) {
+    throw new Error(`Invalid time format: "${input}". Use: 30m, 4h, 1d, 2w, 3M, today, yesterday, or ISO date`);
+  }
+
+  const amount = parseInt(match[1], 10);
+  const unit = match[2];
+  const now = new Date();
+
+  switch (unit) {
+    case 'm': now.setMinutes(now.getMinutes() - amount); break;
+    case 'h': now.setHours(now.getHours() - amount); break;
+    case 'd': now.setDate(now.getDate() - amount); break;
+    case 'w': now.setDate(now.getDate() - amount * 7); break;
+    case 'M': now.setMonth(now.getMonth() - amount); break;
+  }
+
+  return now.toISOString();
+}
+
+/**
+ * Parse priority filter string into query params.
+ * Supports: "8" (exact), "8+" (min), "5-8" (range).
+ * Returns object with priority, min_priority, and/or max_priority keys.
+ */
+function parsePriority(input) {
+  if (!input) return {};
+
+  // Range: 5-8
+  const rangeMatch = input.match(/^(\d+)-(\d+)$/);
+  if (rangeMatch) {
+    const min = parseInt(rangeMatch[1], 10);
+    const max = parseInt(rangeMatch[2], 10);
+    if (min < 1 || min > 10 || max < 1 || max > 10) {
+      throw new Error('Priority must be between 1 and 10');
+    }
+    if (min > max) {
+      throw new Error('Invalid priority range: min must be <= max');
+    }
+    return { min_priority: min, max_priority: max };
+  }
+
+  // Min: 8+
+  const minMatch = input.match(/^(\d+)\+$/);
+  if (minMatch) {
+    const min = parseInt(minMatch[1], 10);
+    if (min < 1 || min > 10) {
+      throw new Error('Priority must be between 1 and 10');
+    }
+    return { min_priority: min };
+  }
+
+  // Exact: 8
+  const exact = parseInt(input, 10);
+  if (isNaN(exact) || exact < 1 || exact > 10) {
+    throw new Error(`Invalid priority: "${input}". Use a number 1-10, N+, or N-M`);
+  }
+  return { priority: exact };
+}
+
+/**
+ * Map user-friendly sort field names to API sort_by values.
+ */
+function parseSortField(input) {
+  const mapping = {
+    created: 'created_at',
+    updated: 'updated_at',
+    priority: 'priority',
+    title: 'title'
+  };
+
+  const field = mapping[input];
+  if (!field) {
+    throw new Error(`Invalid sort field: "${input}". Must be one of: ${Object.keys(mapping).join(', ')}`);
+  }
+  return field;
+}
+
+// ============================================================================
 // Configuration
 // ============================================================================
 
@@ -525,6 +642,39 @@ commands.list = async function(args, config) {
   if (options.assignee) params.append('assignee_id', options.assignee);
   if (options.limit) params.append('limit', options.limit);
   if (options.offset) params.append('offset', options.offset);
+
+  // --since / -S → created_after
+  const since = options.since || options.S;
+  if (since) params.append('created_after', parseTimeString(since));
+
+  // --updated-since → updated_after
+  if (options['updated-since']) params.append('updated_after', parseTimeString(options['updated-since']));
+
+  // --priority / -p → priority, min_priority, max_priority
+  const priorityInput = options.p || options.priority;
+  if (priorityInput) {
+    for (const [key, value] of Object.entries(parsePriority(priorityInput))) {
+      params.append(key, value);
+    }
+  }
+
+  // --search / -q → search
+  const search = options.search || options.q;
+  if (search) params.append('search', search);
+
+  // --sort → sort_by + sort_dir
+  if (options.sort) {
+    const sortField = parseSortField(options.sort);
+    params.append('sort_by', sortField);
+    const defaultDir = sortField === 'title' ? 'asc' : 'desc';
+    const sortDir = (flags.reverse || flags.r) ? (defaultDir === 'desc' ? 'asc' : 'desc') : defaultDir;
+    params.append('sort_dir', sortDir);
+  } else if (flags.reverse || flags.r) {
+    params.append('sort_dir', 'asc');
+  }
+
+  // --project-id → project_id
+  if (options['project-id']) params.append('project_id', options['project-id']);
 
   const query = params.toString();
   const basePath = taskPath(config);
@@ -1226,6 +1376,13 @@ TASK COMMANDS:
     --type <type>            Filter by type
     --channel <channel>      Filter by channel
     --assignee <id>          Filter by assignee
+    --since, -S <time>       Created after (1h, 2d, 1w, 3M, today, yesterday, ISO)
+    --updated-since <time>   Updated after (same formats as --since)
+    --priority, -p <pri>     Filter by priority: 8, 7+, or 5-8
+    --search, -q <text>      Search title and description
+    --sort <field>           Sort by: created, updated, priority, title
+    --reverse, -r            Reverse sort direction
+    --project-id <id>        Filter by project ID
     --limit <n>              Limit results
     --offset <n>             Skip results
 
@@ -1314,6 +1471,9 @@ ENVIRONMENT VARIABLES:
 EXAMPLES:
   ats list                                  # Show pending tasks
   ats list --all                            # Show all tasks
+  ats list --since 1d --priority 7+         # High-priority tasks from last day
+  ats list -q "deploy" --sort updated -r    # Search + sort by recently updated
+  ats list --channel sales -S 1w            # Channel tasks from last week
   ats create "Review PR #123" --priority 8  # Create a task
   ats get 42                                # View task details
   ats claim 42                              # Claim a task
@@ -1393,4 +1553,9 @@ async function main() {
   }
 }
 
-main();
+// Run main only when executed directly (not imported for testing)
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main();
+}
+
+export { parseTimeString, parsePriority, parseSortField };
