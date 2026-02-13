@@ -571,7 +571,7 @@ commands.create = async function(args, config) {
 
   const result = await request(config, 'POST', taskPath(config), body);
   const task = result.task || result;
-  console.log(`✓ Task created with ID: ${task.id}`);
+  if (config.format !== 'json') console.log(`✓ Task created with ID: ${task.id}`);
   formatOutput(task, config.format, TASK_DETAIL_COLUMNS);
 };
 
@@ -684,7 +684,9 @@ commands.list = async function(args, config) {
   const count = result.count || tasks.length;
 
   if (tasks.length === 0) {
-    if (!showAll && !options.status) {
+    if (config.format === 'json') {
+      console.log('[]');
+    } else if (!showAll && !options.status) {
       console.log('No pending tasks. Use --all to see all tasks.');
     } else {
       console.log('No tasks found.');
@@ -693,8 +695,10 @@ commands.list = async function(args, config) {
   }
 
   formatOutput(tasks, config.format, TASK_COLUMNS);
-  const statusNote = !showAll && !options.status ? ' (pending only, use --all for all)' : '';
-  console.log(`\n${count} task(s) found${statusNote}`);
+  if (config.format !== 'json') {
+    const statusNote = !showAll && !options.status ? ' (pending only, use --all for all)' : '';
+    console.log(`\n${count} task(s) found${statusNote}`);
+  }
 };
 
 commands.update = async function(args, config) {
@@ -723,7 +727,7 @@ commands.update = async function(args, config) {
 
   const result = await request(config, 'PATCH', taskPath(config, `/${id}`), body);
   const task = result.task || result;
-  console.log(`✓ Task ${id} updated`);
+  if (config.format !== 'json') console.log(`✓ Task ${id} updated`);
   formatOutput(task, config.format, TASK_DETAIL_COLUMNS);
 };
 
@@ -742,9 +746,12 @@ commands.claim = async function(args, config) {
 
   const result = await request(config, 'POST', taskPath(config, `/${id}/claim`), body);
   const task = result.task || result;
-  console.log(`✓ Task ${id} claimed`);
-  console.log(`  Assignee: ${task.assignee_name}`);
-  console.log(`  Lease expires: ${formatTimestamp(task.lease_expires)}`);
+  if (config.format !== 'json') {
+    console.log(`✓ Task ${id} claimed`);
+    console.log(`  Assignee: ${task.assignee_name}`);
+    console.log(`  Lease expires: ${formatTimestamp(task.lease_expires)}`);
+  }
+  formatOutput(task, config.format, TASK_DETAIL_COLUMNS);
 };
 
 commands.complete = async function(args, config) {
@@ -761,8 +768,12 @@ commands.complete = async function(args, config) {
     body.outputs = Array.isArray(parsed) ? parsed : [parsed];
   }
 
-  await request(config, 'POST', taskPath(config, `/${id}/complete`), body);
-  console.log(`✓ Task ${id} completed`);
+  const result = await request(config, 'POST', taskPath(config, `/${id}/complete`), body);
+  if (config.format === 'json') {
+    formatOutput(result.task || result || { ok: true, id }, config.format);
+  } else {
+    console.log(`✓ Task ${id} completed`);
+  }
 };
 
 commands.cancel = async function(args, config) {
@@ -773,8 +784,12 @@ commands.cancel = async function(args, config) {
     process.exit(1);
   }
 
-  await request(config, 'POST', taskPath(config, `/${id}/cancel`));
-  console.log(`✓ Task ${id} cancelled`);
+  const result = await request(config, 'POST', taskPath(config, `/${id}/cancel`));
+  if (config.format === 'json') {
+    formatOutput(result.task || result || { ok: true, id }, config.format);
+  } else {
+    console.log(`✓ Task ${id} cancelled`);
+  }
 };
 
 commands.fail = async function(args, config) {
@@ -790,8 +805,12 @@ commands.fail = async function(args, config) {
     body.reason = args.options.reason;
   }
 
-  await request(config, 'POST', taskPath(config, `/${id}/fail`), body);
-  console.log(`✓ Task ${id} marked as failed`);
+  const result = await request(config, 'POST', taskPath(config, `/${id}/fail`), body);
+  if (config.format === 'json') {
+    formatOutput(result.task || result || { ok: true, id }, config.format);
+  } else {
+    console.log(`✓ Task ${id} marked as failed`);
+  }
 };
 
 commands.reject = async function(args, config) {
@@ -807,8 +826,12 @@ commands.reject = async function(args, config) {
     body.reason = args.options.reason;
   }
 
-  await request(config, 'POST', taskPath(config, `/${id}/reject`), body);
-  console.log(`✓ Task ${id} rejected`);
+  const result = await request(config, 'POST', taskPath(config, `/${id}/reject`), body);
+  if (config.format === 'json') {
+    formatOutput(result.task || result || { ok: true, id }, config.format);
+  } else {
+    console.log(`✓ Task ${id} rejected`);
+  }
 };
 
 commands.reopen = async function(args, config) {
@@ -824,8 +847,12 @@ commands.reopen = async function(args, config) {
     body.reason = args.options.reason;
   }
 
-  await request(config, 'POST', taskPath(config, `/${id}/reopen`), body);
-  console.log(`✓ Task ${id} reopened`);
+  const result = await request(config, 'POST', taskPath(config, `/${id}/reopen`), body);
+  if (config.format === 'json') {
+    formatOutput(result.task || result || { ok: true, id }, config.format);
+  } else {
+    console.log(`✓ Task ${id} reopened`);
+  }
 };
 
 // --- Message Commands ---
@@ -850,7 +877,7 @@ commands.message = {
 
     const result = await request(config, 'POST', taskPath(config, `/${taskId}/messages`), body);
     const message = result.message || result;
-    console.log(`✓ Message added to task ${taskId}`);
+    if (config.format !== 'json') console.log(`✓ Message added to task ${taskId}`);
     formatOutput(message, config.format, MESSAGE_COLUMNS);
   },
 
