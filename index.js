@@ -302,9 +302,9 @@ function getConfig(options) {
     channel: options.channel || process.env.ATS_CHANNEL || fileConfig.channel || 'default',
     useProjectScope: !!(hasOrgConfig || hasProjectConfig),
     actor: {
-      type: options['actor-type'] || process.env.ATS_ACTOR_TYPE || fileConfig.actor?.type || 'human',
-      id: options['actor-id'] || process.env.ATS_ACTOR_ID || fileConfig.actor?.id || `cli-${process.env.USER || 'user'}`,
-      name: options['actor-name'] || process.env.ATS_ACTOR_NAME || fileConfig.actor?.name || process.env.USER || 'CLI User'
+      type: options['actor-type'] || process.env.ATS_ACTOR_TYPE || fileConfig.actor?.type || 'agent',
+      id: options['actor-id'] || process.env.ATS_ACTOR_ID || fileConfig.actor?.id || 'claude-code',
+      name: options['actor-name'] || process.env.ATS_ACTOR_NAME || fileConfig.actor?.name || 'Claude Code'
     },
     format: options.format || options.f || 'table',
     verbose: options.verbose || options.v,
@@ -1454,9 +1454,9 @@ GLOBAL OPTIONS:
   --org <slug>               Override default organization
   --project <slug>           Override default project
   --format, -f <format>      Output format: table, json (default: table)
-  --actor-type <type>        Actor type: human, agent, system
-  --actor-id <id>            Actor ID
-  --actor-name <name>        Actor display name
+  --actor-type <type>        Actor type: human, agent, system (default: agent)
+  --actor-id <id>            Actor ID (default: claude-code)
+  --actor-name <name>        Actor display name (default: Claude Code)
   --verbose, -v              Verbose output
   --help, -h                 Show this help
 
@@ -1469,7 +1469,12 @@ CONFIGURATION:
     "organization": "default",
     "project": "main",
     "channel": "ada-dispatch",
-    "url": "https://ats.difflab.ai"
+    "url": "https://ats.difflab.ai",
+    "actor": {
+      "type": "agent",
+      "id": "claude-code",
+      "name": "Claude Code"
+    }
   }
 
   Priority: CLI flags > environment variables > project config > global config > defaults
