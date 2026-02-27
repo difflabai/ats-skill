@@ -91,11 +91,11 @@ ats project init --org myorg --project myproject
 # Overwrite existing config
 ats project init myorg/myproject --force
 
-# Skip server verification
-ats project init myorg/myproject --no-verify
+# Skip server existence check (for projects that will be created later, or offline use)
+ats project init myorg/myproject --skip-existence-check
 ```
 
-Creates a `.ats/project.json` file in the current directory.
+Creates a `.ats/project.json` file in the current directory. By default, `project init` verifies that the org/project exists on the server before creating the local binding. Use `--skip-existence-check` when initializing a binding for a project that hasn't been created yet or when working offline.
 
 ### List Projects
 

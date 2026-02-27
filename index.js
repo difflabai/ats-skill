@@ -949,13 +949,13 @@ commands.project = {
       process.exit(1);
     }
 
-    // Verify org/project exist if not using --no-verify
-    if (!flags['no-verify']) {
+    // Verify org/project exist on the server unless --skip-existence-check
+    if (!flags['skip-existence-check']) {
       try {
         await request(config, 'GET', `/orgs/${org}/projects/${project}`);
       } catch (err) {
-        console.error(`Error: Could not verify project ${org}/${project}: ${err.message}`);
-        console.error('Use --no-verify to skip verification.');
+        console.error(`Error: Project '${org}/${project}' does not exist on the server.`);
+        console.error(`Create it first with 'ats project create ${org}/${project}', or use --skip-existence-check to bind to a project that will be created later.`);
         process.exit(1);
       }
     }
@@ -1424,7 +1424,7 @@ TASK COMMANDS:
 PROJECT COMMANDS:
   project init [org/project]    Bind current directory to a project
     --force                     Overwrite existing config
-    --no-verify                 Skip verification
+    --skip-existence-check      Skip server existence check
   project list                  List all projects (flattened org/project view)
   project create <org/project>  Create a new project
     --name <name>               Project name
