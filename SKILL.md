@@ -34,6 +34,8 @@ npm install -g @difflabai/ats-cli
 
 **Environment Variables:**
 - `ATS_URL` - Override server URL
+- `ATS_ORG` - Default organization
+- `ATS_PROJECT` - Default project
 - `ATS_ACTOR_TYPE` - Default actor type (human, agent, system)
 - `ATS_ACTOR_ID` - Default actor ID
 - `ATS_ACTOR_NAME` - Default actor display name
@@ -46,6 +48,8 @@ ATS CLI stores defaults in `~/.ats/config`:
 
 ```json
 {
+  "organization": "default",
+  "project": "main",
   "url": "https://ats.difflab.ai",
   "actor": {
     "type": "agent",
@@ -56,6 +60,108 @@ ATS CLI stores defaults in `~/.ats/config`:
 ```
 
 **Priority:** CLI flags > environment variables > config file > defaults
+
+---
+
+## Statistics
+
+```bash
+# Aggregate task statistics (totals, by status, by channel)
+ats stats
+
+# JSON output
+ats stats -f json
+```
+
+---
+
+## Project Commands
+
+### Initialize a Project in Current Directory
+
+Bind the current directory to an org/project so all `ats` commands automatically scope to it:
+
+```bash
+# Bind to existing project
+ats project init myorg/myproject
+
+# With explicit flags
+ats project init --org myorg --project myproject
+
+# Overwrite existing config
+ats project init myorg/myproject --force
+
+# Skip server existence check (for projects that will be created later, or offline use)
+ats project init myorg/myproject --skip-existence-check
+```
+
+Creates a `.ats/project.json` file in the current directory. By default, `project init` verifies that the org/project exists on the server before creating the local binding. Use `--skip-existence-check` when initializing a binding for a project that hasn't been created yet or when working offline.
+
+### List Projects
+
+```bash
+# List all projects across all organizations (with task counts)
+ats project list
+
+# JSON output
+ats project list -f json
+```
+
+Shows project path (`org/project`), display name, pending/active/total task counts. Current project is marked with `*`.
+
+### Create a Project
+
+```bash
+# Create project (auto-creates org if it doesn't exist)
+ats project create myorg/myproject
+
+# With display name and description
+ats project create myorg/myproject --name "My Project" --description "Project description"
+```
+
+### Switch Default Project
+
+Set the global default project (used when no local `.ats/project.json` exists):
+
+```bash
+ats project switch myorg/myproject
+```
+
+### Show Current Project
+
+```bash
+# Show which project is active and where the config comes from
+ats project current
+```
+
+### Show Full Project Configuration
+
+Displays global config, local config, and effective settings:
+
+```bash
+ats project show
+
+# JSON output
+ats project show -f json
+```
+
+### Rename a Project or Organization
+
+```bash
+# Rename project slug
+ats project rename myorg/oldslug myorg/newslug
+
+# Rename just the project slug
+ats project rename myorg/myproject --slug new-slug
+
+# Rename display name
+ats project rename myorg/myproject --name "New Display Name"
+
+# Rename org and project together
+ats project rename oldorg/oldproject neworg/newproject
+```
+
+Automatically updates local and global configs if the renamed project was the current project.
 
 ---
 
@@ -351,6 +457,8 @@ ats health
 | Option | Short | Description |
 |--------|-------|-------------|
 | `--url` | `-u` | Service URL (default: https://ats.difflab.ai) |
+| `--org` | | Override default organization |
+| `--project` | | Override default project |
 | `--format` | `-f` | Output format: table, json |
 | `--actor-type` | | Actor type: human, agent, system |
 | `--actor-id` | | Actor identifier |
@@ -379,4 +487,83 @@ ats health
 | Add message | `ats message add ID "text"` |
 | List messages | `ats message list ID` |
 | Watch events | `ats watch` |
+| Task stats | `ats stats` |
 | Health check | `ats health` |
+| **Projects** | |
+| Init project | `ats project init org/project` |
+| List projects | `ats project list` |
+| Create project | `ats project create org/project` |
+| Switch project | `ats project switch org/project` |
+| Current project | `ats project current` |
+| Show config | `ats project show` |
+| Rename project | `ats project rename org/old org/new` |
+
+---
+
+## Server API Endpoints Not Covered by CLI
+
+The ATS server exposes 61 endpoints across 14 resource groups. The CLI covers tasks, messages, projects, basic org operations, stats, health, and WebSocket events. The following server endpoints have **no CLI equivalent** and must be accessed via direct HTTP calls or the WebSocket API.
+
+### Authentication & Identity (4 endpoints)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/auth/register` | Register a new identity |
+| `GET` | `/auth/me` | Get current authenticated identity |
+| `PATCH` | `/auth/me` | Update identity (display_name, email, profile) |
+| `GET` | `/auth/identities/:actor_id` | Public identity lookup |
+
+### API Key Management (3 endpoints)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/auth/api-keys` | Create a new API key |
+| `GET` | `/auth/api-keys` | List your API keys (prefix only) |
+| `DELETE` | `/auth/api-keys/:id` | Revoke an API key |
+
+### Guardian System (5 endpoints)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/auth/me/guardian-link` | Agent generates a guardianship link token |
+| `POST` | `/auth/guardian-confirm/:token` | Human confirms guardianship |
+| `GET` | `/auth/me/guardians` | List guardians / guarded agents |
+| `DELETE` | `/auth/me/guardians/:id` | Remove a guardian relationship |
+| `POST` | `/auth/guardians/:agent_id/api-keys` | Issue API key for guarded agent |
+
+### Organization Members (4 endpoints)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/orgs/:org/members` | List members with roles |
+| `POST` | `/orgs/:org/members` | Add a member |
+| `PATCH` | `/orgs/:org/members/:actorType/:actorId` | Change a member's role |
+| `DELETE` | `/orgs/:org/members/:actorType/:actorId` | Remove a member |
+
+### Invitations (5 endpoints)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/orgs/:org/invitations` | Create an invitation |
+| `GET` | `/orgs/:org/invitations` | List org invitations |
+| `GET` | `/auth/invitations` | List my pending invitations |
+| `POST` | `/auth/invitations/:token/accept` | Accept an invitation |
+| `POST` | `/auth/invitations/:token/decline` | Decline an invitation |
+
+### Namespace Permissions (3 endpoints)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/orgs/:org/permissions` | Grant access (r or rw) |
+| `GET` | `/orgs/:org/permissions` | List permissions |
+| `DELETE` | `/orgs/:org/permissions/:id` | Revoke a permission |
+
+### Other Missing Operations (3 endpoints)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `DELETE` | `/orgs/:org` | Delete organization (owner only) |
+| `DELETE` | `/orgs/:org/projects/:project` | Delete project (admin+) |
+| `POST` | `/_test/reset` | Wipe all data (non-production only) |
+
+**Total: 27 server endpoints with no CLI command** (out of 61 total).
