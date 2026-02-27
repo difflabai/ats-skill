@@ -299,6 +299,7 @@ function getConfig(options) {
     baseUrl: options.url || options.u || process.env.ATS_URL || fileConfig.url || DEFAULT_BASE_URL,
     organization: options.org || process.env.ATS_ORG || fileConfig.organization || 'default',
     project: options.project || process.env.ATS_PROJECT || fileConfig.project || 'main',
+    channel: options.channel || process.env.ATS_CHANNEL || fileConfig.channel || 'default',
     useProjectScope: !!(hasOrgConfig || hasProjectConfig),
     actor: {
       type: options['actor-type'] || process.env.ATS_ACTOR_TYPE || fileConfig.actor?.type || 'human',
@@ -563,7 +564,7 @@ commands.create = async function(args, config) {
   const body = {
     title,
     type: options.type || 'task',
-    channel: options.channel || 'default',
+    channel: config.channel,
     priority: parseInt(options.priority, 10) || 5,
     description: options.description,
     payload: options.payload ? JSON.parse(options.payload) : undefined
@@ -1380,7 +1381,7 @@ USAGE:
 TASK COMMANDS:
   create <title>             Create a new task
     --type <type>            Task type (default: task)
-    --channel <channel>      Task channel (default: default)
+    --channel <channel>      Task channel (default: from config or "default")
     --priority <1-10>        Priority level (default: 5)
     --description <text>     Task description
     --payload <json>         Task payload as JSON
@@ -1467,6 +1468,7 @@ CONFIGURATION:
   {
     "organization": "default",
     "project": "main",
+    "channel": "ada-dispatch",
     "url": "https://ats.difflab.ai"
   }
 
@@ -1480,6 +1482,7 @@ ENVIRONMENT VARIABLES:
   ATS_URL                    Service URL
   ATS_ORG                    Default organization
   ATS_PROJECT                Default project
+  ATS_CHANNEL                Default channel for task creation
   ATS_ACTOR_TYPE             Default actor type
   ATS_ACTOR_ID               Default actor ID
   ATS_ACTOR_NAME             Default actor name
