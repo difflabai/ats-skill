@@ -1274,12 +1274,14 @@ commands.watch = async function(args, config) {
     actor_name: config.actor.name
   });
 
-  console.log(`Connecting to ${wsUrl}...`);
+  const isJson = config.format === 'json';
+
+  if (!isJson) console.log(`Connecting to ${wsUrl}...`);
 
   const ws = new WebSocket(`${wsUrl}?${params}`);
 
   ws.onopen = () => {
-    console.log('✓ Connected');
+    if (!isJson) console.log('✓ Connected');
 
     // Subscribe to events
     const subscription = {
@@ -1298,13 +1300,27 @@ commands.watch = async function(args, config) {
     }
 
     ws.send(JSON.stringify(subscription));
-    console.log('Watching for events... (Ctrl+C to stop)\n');
+    if (!isJson) console.log('Watching for events... (Ctrl+C to stop)\n');
   };
 
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
 
     if (msg.type === 'pong' || msg.type === 'connected' || msg.type === 'subscribed') {
+      return;
+    }
+
+    if (isJson) {
+      const task = msg.data?.task || msg.task || {};
+      const jsonEvent = {
+        event: msg.type,
+        task_id: task.id ?? null,
+        title: task.title ?? null,
+        status: task.status ?? null,
+        channel: task.channel ?? null,
+        timestamp: new Date().toISOString()
+      };
+      console.log(JSON.stringify(jsonEvent));
       return;
     }
 
@@ -1329,7 +1345,7 @@ commands.watch = async function(args, config) {
   };
 
   ws.onclose = () => {
-    console.log('\nConnection closed');
+    if (!isJson) console.log('\nConnection closed');
     process.exit(0);
   };
 
