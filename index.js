@@ -829,6 +829,18 @@ commands.reopen = async function(args, config) {
   console.log(`✓ Task ${id} reopened`);
 };
 
+commands.delete = async function(args, config) {
+  const id = args.positional[0] || args.options.id;
+  if (!id) {
+    console.error('Error: Task ID is required');
+    console.error('Usage: ats delete <id>');
+    process.exit(1);
+  }
+
+  await request(config, 'DELETE', taskPath(config, `/${id}`));
+  console.log(`✓ Task ${id} deleted`);
+};
+
 // --- Message Commands ---
 commands.message = {
   async add(args, config) {
@@ -1420,6 +1432,7 @@ TASK COMMANDS:
     --reason <text>          Rejection reason
   reopen <id>                Reopen a task from terminal state
     --reason <text>          Reason for reopening
+  delete <id>                Delete a task
 
 PROJECT COMMANDS:
   project init [org/project]    Bind current directory to a project
