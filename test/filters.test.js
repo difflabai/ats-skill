@@ -39,11 +39,11 @@ describe('parseTimeString', () => {
   });
 
   it('parses relative weeks', () => {
-    const before = Date.now();
-    const result = new Date(parseTimeString('2w')).getTime();
-    const after = Date.now();
-    assert.ok(result >= before - 14 * 24 * 60 * 60 * 1000 - 1000);
-    assert.ok(result <= after - 14 * 24 * 60 * 60 * 1000 + 1000);
+    const result = new Date(parseTimeString('2w'));
+    const expected = new Date();
+    expected.setDate(expected.getDate() - 14);
+    // Allow 2 second tolerance
+    assert.ok(Math.abs(result.getTime() - expected.getTime()) < 2000);
   });
 
   it('parses relative months (capital M)', () => {

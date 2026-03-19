@@ -277,12 +277,6 @@ ats reopen 123
 ats reopen 123 --reason "Need to revisit this task"
 ```
 
-### Delete a Task
-
-```bash
-ats delete 123
-```
-
 ---
 
 ## Message Operations
