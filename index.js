@@ -6,7 +6,7 @@
  * in the Agent Task Service.
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, realpathSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { homedir } from 'os';
@@ -1578,7 +1578,7 @@ async function main() {
 }
 
 // Run main only when executed directly (not imported for testing)
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (realpathSync(process.argv[1] || '') === fileURLToPath(import.meta.url)) {
   main();
 }
 
