@@ -1,0 +1,117 @@
+name: Test and publish ATS CLI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.registry.outputs.version }}
+      exists: ${{ steps.registry.outputs.exists }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+      - run: node --test
+      - name: Test the packed CLI
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dist"
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/dist"
+          npm install --prefix "$RUNNER_TEMP/smoke" --offline --ignore-scripts --no-audit --no-fund "$RUNNER_TEMP"/dist/*.tgz
+          help=$("$RUNNER_TEMP/smoke/node_modules/.bin/ats" --help)
+          [[ "$help" == *'ATS CLI'* ]]
+          expected=$(node -p "require('./package.json').version")
+          test "$("$RUNNER_TEMP/smoke/node_modules/.bin/ats" --version)" = "ats-cli v$expected"
+      - name: Check the exact npm version
+        id: registry
+        if: github.repository == 'difflabai/ats-skill' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: node .github/scripts/check-npm-version.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: steps.registry.outputs.exists == 'false'
+        with:
+          name: ats-cli-npm-distribution
+          path: ${{ runner.temp }}/dist/*.tgz
+          if-no-files-found: error
+
+  publish:
+    needs: test
+    if: needs.test.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: ats-cli-npm-publish
+      cancel-in-progress: false
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@difflabai/ats-cli/v/${{ needs.test.outputs.version }}
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      published: ${{ steps.upload.outputs.published }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ats-cli-npm-distribution
+          path: ${{ runner.temp }}/dist
+      - name: Recheck npm before publishing
+        id: registry
+        run: node .github/scripts/check-npm-version.mjs
+      - name: Publish the tested tarball
+        id: upload
+        if: steps.registry.outputs.exists == 'false'
+        env:
+          VERSION: ${{ steps.registry.outputs.version }}
+        run: |
+          set -euo pipefail
+          current=$(git ls-remote --exit-code origin refs/heads/main)
+          if [[ "${current%%$'\t'*}" != "$GITHUB_SHA" ]]; then
+            echo "A newer commit is on main"
+            exit 0
+          fi
+          tag=latest
+          if [[ "$VERSION" == *-* ]]; then
+            tag=next
+          fi
+          npm publish "$RUNNER_TEMP/dist/difflabai-ats-cli-$VERSION.tgz" --ignore-scripts --access public --tag "$tag"
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+  tag:
+    needs: [test, publish]
+    if: needs.publish.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.test.outputs.version }}
+    steps:
+      - name: Tag the published source
+        run: |
+          set -euo pipefail
+          endpoint="repos/$GITHUB_REPOSITORY/git"
+          if tagged=$(gh api "$endpoint/ref/tags/v$VERSION" --jq .object.sha 2>/dev/null); then
+            test "$tagged" = "$GITHUB_SHA"
+          else
+            gh api "$endpoint/refs" -f ref="refs/tags/v$VERSION" -f sha="$GITHUB_SHA" --silent
+          fi
