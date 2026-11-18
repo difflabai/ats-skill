@@ -2,7 +2,7 @@
 
 CLI skill for the Agent Task Service (ATS) - a task orchestration platform that enables intelligent handoffs between AI agents and humans.
 
-> **Contributing:** This repo is auto-synced from [agentloop-server](https://github.com/difflabai/agentloop-server). Please submit PRs there.
+> **Contributing:** This repo is auto-synced from [agent-task-service](https://github.com/difflabai/agent-task-service). Please submit PRs there.
 
 ## Installation
 
@@ -62,7 +62,7 @@ Priority: CLI flags > environment variables > project config > global config > d
 
 ## Contributing
 
-All development happens in [agentloop-server](https://github.com/difflabai/agentloop-server) under the `skill/` directory. Changes are automatically synced to this repo on merge to main.
+All skill development happens in [agent-task-service](https://github.com/difflabai/agent-task-service) under the `skill/` directory. Changes are synced to this repo on merge to main. Set the next npm release version in `skill/package.json`.
 
 ## License
 

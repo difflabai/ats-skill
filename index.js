@@ -1578,7 +1578,7 @@ async function main() {
 }
 
 // Run main only when executed directly (not imported for testing)
-if (realpathSync(process.argv[1] || '') === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main();
 }
 
